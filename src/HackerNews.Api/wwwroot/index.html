@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker News - Best Stories</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Verdana, Geneva, sans-serif;
+            font-size: 13px;
+            background-color: #f6f6ef;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background-color: #ff6600;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #000;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .header-logo .logo-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .header-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .header-nav {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .signalr-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #000;
+        }
+
+        .signalr-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #999;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+
+        .signalr-dot.connected {
+            background-color: #00c853;
+        }
+
+        .signalr-dot.disconnected {
+            background-color: #d50000;
+        }
+
+        .signalr-dot.connecting {
+            background-color: #ffd600;
+        }
+
+        /* Controls */
+        .controls {
+            background-color: #f6f6ef;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .controls label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .controls input[type="number"] {
+            width: 70px;
+            padding: 4px 6px;
+            font-size: 13px;
+            font-family: monospace;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            background: #fff;
+        }
+
+        .controls input[type="number"]:focus {
+            outline: none;
+            border-color: #ff6600;
+        }
+
+        .fetch-btn {
+            padding: 4px 14px;
+            font-size: 12px;
+            font-family: Verdana, Geneva, sans-serif;
+            background-color: #ff6600;
+            color: #fff;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .fetch-btn:hover {
+            background-color: #e55c00;
+        }
+
+        .fetch-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Content */
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-top-color: #ff6600;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error {
+            display: none;
+            padding: 14px 16px;
+            margin: 10px 12px;
+            background-color: #ffeaea;
+            color: #c00;
+            border: 1px solid #f5c6c6;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        /* Story list */
+        .story-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .story-item {
+            padding: 6px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            transition: background-color 0.5s ease;
+        }
+
+        .story-item:nth-child(odd) {
+            background-color: #f6f6ef;
+        }
+
+        .story-item:nth-child(even) {
+            background-color: #fafaf4;
+        }
+
+        .story-main {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .story-rank {
+            color: #999;
+            font-size: 12px;
+            min-width: 26px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .story-title-link {
+            color: #000;
+            text-decoration: none;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .story-title-link:visited {
+            color: #828282;
+        }
+
+        .story-title-link:hover {
+            text-decoration: underline;
+        }
+
+        .story-domain {
+            color: #828282;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .story-meta {
+            padding-left: 34px;
+            color: #828282;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .story-meta .score {
+            transition: color 0.3s;
+        }
+
+        .story-meta .separator {
+            color: #ccc;
+        }
+
+        /* Score highlight animation */
+        @keyframes score-flash {
+            0%   { background-color: #fff9c4; }
+            100% { background-color: transparent; }
+        }
+
+        .story-item.score-updated {
+            animation: score-flash 2s ease-out;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #828282;
+            font-size: 11px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header {
+                padding: 6px 8px;
+            }
+
+            .controls {
+                padding: 8px;
+            }
+
+            .story-item {
+                padding: 6px 8px;
+            }
+
+            .story-meta {
+                padding-left: 28px;
+            }
+
+            .story-rank {
+                min-width: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <a class="header-logo" href="/">
+            <span class="logo-box">Y</span>
+            <span class="header-title">Hacker News Best Stories</span>
+        </a>
+        <div class="header-nav">
+            <div class="signalr-status">
+                <span class="signalr-dot" id="signalrDot"></span>
+                <span id="signalrLabel">Disconnected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <label for="countInput">Stories:</label>
+        <input type="number" id="countInput" min="1" max="200" value="10" />
+        <button class="fetch-btn" id="fetchBtn">Fetch</button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="loading" id="loading">
+            <span class="spinner"></span> Loading stories...
+        </div>
+        <div class="error" id="error"></div>
+        <ol class="story-list" id="storyList"></ol>
+        <div class="empty-state" id="emptyState">
+            Click <strong>Fetch</strong> to load the best stories from Hacker News.
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Hacker News Best Stories API &mdash; Powered by SignalR for live updates
+    </div>
+
+    <!-- SignalR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+
+    <script>
+        (function () {
+            "use strict";
+
+            // DOM elements
+            const countInput = document.getElementById("countInput");
+            const fetchBtn = document.getElementById("fetchBtn");
+            const loadingEl = document.getElementById("loading");
+            const errorEl = document.getElementById("error");
+            const storyListEl = document.getElementById("storyList");
+            const emptyStateEl = document.getElementById("emptyState");
+            const signalrDot = document.getElementById("signalrDot");
+            const signalrLabel = document.getElementById("signalrLabel");
+
+            // State
+            let currentStories = [];
+            let lastRequestedCount = 10;
+
+            // -----------------------------------------------
+            // Utility: extract domain from URL
+            // -----------------------------------------------
+            function extractDomain(url) {
+                if (!url) return null;
+                try {
+                    var hostname = new URL(url).hostname;
+                    return hostname.replace(/^www\./, "");
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // -----------------------------------------------
+            // Utility: relative time string
+            // -----------------------------------------------
+            function timeAgo(dateStr) {
+                var now = Date.now();
+                var then = new Date(dateStr).getTime();
+                var seconds = Math.floor((now - then) / 1000);
+
+                if (seconds < 0) return "just now";
+
+                var intervals = [
+                    { label: "year",   secs: 31536000 },
+                    { label: "month",  secs: 2592000 },
+                    { label: "day",    secs: 86400 },
+                    { label: "hour",   secs: 3600 },
+                    { label: "minute", secs: 60 }
+                ];
+
+                for (var i = 0; i < intervals.length; i++) {
+                    var count = Math.floor(seconds / intervals[i].secs);
+                    if (count >= 1) {
+                        return count + " " + intervals[i].label + (count !== 1 ? "s" : "") + " ago";
+                    }
+                }
+                return "just now";
+            }
+
+            // -----------------------------------------------
+            // UI: show / hide helpers
+            // -----------------------------------------------
+            function showLoading(show) {
+                loadingEl.classList.toggle("active", show);
+            }
+
+            function showError(msg) {
+                if (msg) {
+                    errorEl.textContent = msg;
+                    errorEl.classList.add("active");
+                } else {
+                    errorEl.textContent = "";
+                    errorEl.classList.remove("active");
+                }
+            }
+
+            function updateEmptyState() {
+                emptyStateEl.style.display = currentStories.length === 0 ? "block" : "none";
+            }
+
+            // -----------------------------------------------
+            // Render stories
+            // -----------------------------------------------
+            function renderStories(stories, updatedIndices) {
+                storyListEl.innerHTML = "";
+
+                stories.forEach(function (story, idx) {
+                    var li = document.createElement("li");
+                    li.className = "story-item";
+                    li.setAttribute("data-title", story.title || "");
+
+                    // Flash highlight for updated scores
+                    if (updatedIndices && updatedIndices.has(idx)) {
+                        li.classList.add("score-updated");
+                    }
+
+                    var domain = extractDomain(story.uri);
+                    var domainHtml = domain
+                        ? ' <span class="story-domain">(' + escapeHtml(domain) + ')</span>'
+                        : '';
+
+                    var titleHtml;
+                    if (story.uri) {
+                        titleHtml = '<a class="story-title-link" href="' + escapeAttr(story.uri) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(story.title) + '</a>';
+                    } else {
+                        titleHtml = '<span class="story-title-link">' + escapeHtml(story.title) + '</span>';
+                    }
+
+                    li.innerHTML =
+                        '<div class="story-main">' +
+                            '<span class="story-rank">' + (idx + 1) + '.</span>' +
+                            titleHtml +
+                            domainHtml +
+                        '</div>' +
+                        '<div class="story-meta">' +
+                            '<span class="score">' + story.score + ' point' + (story.score !== 1 ? 's' : '') + '</span>' +
+                            '<span class="separator">|</span>' +
+                            '<span>by ' + escapeHtml(story.postedBy) + '</span>' +
+                            '<span class="separator">|</span>' +
+                            '<span>' + timeAgo(story.time) + '</span>' +
+                            '<span class="separator">|</span>' +
+                            '<span>' + story.commentCount + ' comment' + (story.commentCount !== 1 ? 's' : '') + '</span>' +
+                        '</div>';
+
+                    storyListEl.appendChild(li);
+                });
+
+                currentStories = stories;
+                updateEmptyState();
+            }
+
+            function escapeHtml(str) {
+                if (!str) return "";
+                var div = document.createElement("div");
+                div.appendChild(document.createTextNode(str));
+                return div.innerHTML;
+            }
+
+            function escapeAttr(str) {
+                if (!str) return "";
+                return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            }
+
+            // -----------------------------------------------
+            // Fetch stories from API
+            // -----------------------------------------------
+            async function fetchStories() {
+                var count = parseInt(countInput.value, 10);
+                if (isNaN(count) || count < 1 || count > 200) {
+                    showError("Please enter a count between 1 and 200.");
+                    return;
+                }
+
+                lastRequestedCount = count;
+                showError(null);
+                showLoading(true);
+                fetchBtn.disabled = true;
+                emptyStateEl.style.display = "none";
+
+                try {
+                    var response = await fetch("/api/stories?count=" + count);
+                    if (!response.ok) {
+                        var body = "";
+                        try { body = await response.text(); } catch (_) {}
+                        throw new Error("API returned HTTP " + response.status + (body ? ": " + body : ""));
+                    }
+                    var stories = await response.json();
+                    renderStories(stories, null);
+                } catch (err) {
+                    showError("Failed to fetch stories: " + err.message);
+                } finally {
+                    showLoading(false);
+                    fetchBtn.disabled = false;
+                }
+            }
+
+            // Button click
+            fetchBtn.addEventListener("click", fetchStories);
+
+            // Enter key in input
+            countInput.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") fetchStories();
+            });
+
+            // -----------------------------------------------
+            // SignalR: live updates
+            // -----------------------------------------------
+            function setSignalRStatus(status) {
+                signalrDot.className = "signalr-dot " + status;
+                var labels = {
+                    connected: "Live",
+                    disconnected: "Disconnected",
+                    connecting: "Connecting..."
+                };
+                signalrLabel.textContent = labels[status] || status;
+            }
+
+            function initSignalR() {
+                var connection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/stories")
+                    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+                    .configureLogging(signalR.LogLevel.Warning)
+                    .build();
+
+                connection.on("ReceiveStoryUpdates", function (stories) {
+                    if (!stories || !Array.isArray(stories) || stories.length === 0) return;
+
+                    // Only update if we have stories currently displayed
+                    if (currentStories.length === 0) return;
+
+                    // Determine which stories to show: limit to lastRequestedCount
+                    var limitedStories = stories.slice(0, Math.min(stories.length, lastRequestedCount));
+
+                    // Find indices where the score or comment count changed
+                    var updatedIndices = new Set();
+                    for (var i = 0; i < limitedStories.length; i++) {
+                        if (i < currentStories.length) {
+                            var cur = currentStories[i];
+                            var upd = limitedStories[i];
+                            if (cur.score !== upd.score || cur.commentCount !== upd.commentCount) {
+                                updatedIndices.add(i);
+                            }
+                        } else {
+                            // New story that wasn't displayed before
+                            updatedIndices.add(i);
+                        }
+                    }
+
+                    if (updatedIndices.size > 0 || limitedStories.length !== currentStories.length) {
+                        renderStories(limitedStories, updatedIndices);
+                    }
+                });
+
+                connection.onreconnecting(function () {
+                    setSignalRStatus("connecting");
+                });
+
+                connection.onreconnected(function () {
+                    setSignalRStatus("connected");
+                });
+
+                connection.onclose(function () {
+                    setSignalRStatus("disconnected");
+                });
+
+                function startConnection() {
+                    setSignalRStatus("connecting");
+                    connection.start()
+                        .then(function () {
+                            setSignalRStatus("connected");
+                        })
+                        .catch(function (err) {
+                            console.error("SignalR connection failed:", err);
+                            setSignalRStatus("disconnected");
+                            // Retry after 5 seconds
+                            setTimeout(startConnection, 5000);
+                        });
+                }
+
+                startConnection();
+            }
+
+            // Initialize SignalR on page load
+            if (typeof signalR !== "undefined") {
+                initSignalR();
+            } else {
+                console.warn("SignalR library not loaded; live updates unavailable.");
+                setSignalRStatus("disconnected");
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -12,7 +12,6 @@ RESTful API built with **ASP.NET Core 9** that retrieves the best *n* stories fr
 |------|---------|---------|
 | [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) | 9.x | Build and run the API |
 | [Docker](https://docs.docker.com/get-docker/) | 20.x+ | Run Redis container |
-| [Node.js](https://nodejs.org/) | 18+ | E2E tests only (optional) |
 
 ### Step 1 — Start Redis
 
@@ -51,15 +50,6 @@ dotnet run --project src/HackerNews.Api --urls "http://localhost:5123"
 
 ```bash
 dotnet test HackerNews.sln --verbosity normal
-```
-
-**E2E tests** (17 tests — Playwright, requires the API to be running):
-
-```bash
-cd e2e
-npm install
-npx playwright install chromium
-npx playwright test
 ```
 
 **Load tests** (requires [Bombardier](https://github.com/codesenberg/bombardier)):
@@ -154,7 +144,7 @@ Returns the top *n* best stories from Hacker News, ordered by score descending.
 
 - **Docker multi-stage build** — Add a `Dockerfile` with multi-stage build (SDK for build, runtime for final image) so the entire application can be deployed as `docker compose up` without needing .NET SDK installed.
 
-- **CI/CD pipeline** — Add GitHub Actions workflow to build, test (unit + E2E), and optionally publish a Docker image on each push.
+- **CI/CD pipeline** — Add GitHub Actions workflow to build, test, and optionally publish a Docker image on each push.
 
 - **API versioning** — Implement URL or header-based versioning (`/api/v1/stories`) to allow non-breaking API evolution.
 
@@ -206,10 +196,9 @@ src/
     DependencyInjection.cs               # Service registration
 tests/
   HackerNews.Tests/                      # 13 unit tests (xUnit + Moq)
-e2e/
-  tests/                                 # 17 Playwright E2E tests
-docs/
-  TESTING_GUIDE.md                       # Step-by-step manual testing guide
+doc/
+  Backend_Developer_Coding_Test.pdf      # Original challenge specification
 docker-compose.yml                       # Redis container
 loadtest.sh                              # Bombardier load test script
+HackerNews.sln                           # Visual Studio solution
 ```
